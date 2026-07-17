@@ -810,7 +810,7 @@ const WEEKDAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','S
 const WEEKDAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const MONTHS_EN = MONTHS;
-const EMOJIS = ['✅','📈','📚','🏋️','📖','🌙','🧘','💧','🍽️','💰','✍️','🎯','🕌','🏃','💊','🧠','📵','⏰','📓','🚫','🏗️','🥗'];
+const EMOJIS = ['✅','📈','📚','🏋️','📖','🌙','🧘','💧','🍽️','💰','✍️','🎯','🕌','🏃','💊','🧠','📵','⏰','📓','🚫','🏗️','🥗','🧴','❤️','🦷','🚿','😴','🎙️','🔍','📊','🛏️','📿','💪','🦵','🔥','🌸','✨','☀️'];
 const MOTTOS = ['الثبات يبني ما لا يبنيه الحماس','كل عادة صغيرة هي لبنة في رحلتك','The best version of you is created one day at a time.','الانضباط هو الحرية الحقيقية',
   'النتيجة بتيجي لمن يصبر على المنهج','اليوم ده جزء من رحلة كاملة من التحول','الصبر مش ضعف — هو قوة'];
 
@@ -867,13 +867,12 @@ const DEFAULT_HABITS = [
   {id:'h5',name:'مذاكرة إنجليزي 30 دقيقة',icon:'📖',cat:'english',time:'06:00',identity:'أنا شخص بيتعلم كل يوم',timeGroup:'morning'},
   {id:'h6',name:'5 كلمات جديدة + مراجعة',icon:'📓',cat:'english',time:'17:00',identity:'أنا شخص بيوسّع لغته يوم ورا يوم',timeGroup:'evening'},
   {id:'h7',name:'محاولة محادثة/تسجيل صوتي بالإنجليزي',icon:'🎙️',cat:'english',time:'',identity:'أنا شخص بيتكلم إنجليزي بثقة',timeGroup:'midday'},
-  {id:'h8',name:'شغل المشاريع',icon:'🏗️',cat:'income',time:'10:00',identity:'أنا شخص بيبني مصادر دخله بنفسه',timeGroup:'midday'},
   {id:'h9',name:'شاشة بره 9:30م',icon:'📵',cat:'mind',time:'21:30',identity:'أنا شخص عقله صافي وحاضر',timeGroup:'evening'},
   {id:'h10',name:'نوم بدري',icon:'😴',cat:'body',time:'22:00',identity:'أنا شخص بيحترم راحة جسمه',timeGroup:'evening'},
   {id:'h11',name:'مذاكرة مفهوم تداول جديد',icon:'📊',cat:'trading',time:'',identity:'أنا شخص بيبني فهمه للسوق بصبر',timeGroup:'midday'},
   {id:'h12',name:'Backtest أو مراجعة شارت',icon:'🔍',cat:'trading',time:'',identity:'أنا شخص بيتعلم من الشارتات القديمة',timeGroup:'midday'},
   {id:'h13',name:'Glass of Water',icon:'💧',cat:'body',time:'',identity:'أنا شخص بيهتم بجسمه وصحته',timeGroup:'morning'},
-  {id:'h14',name:'Brush Teeth',icon:'🪥',cat:'body',time:'',identity:'أنا شخص بيهتم بجسمه وصحته',timeGroup:'morning'},
+  {id:'h14',name:'Brush Teeth',icon:'🦷',cat:'body',time:'',identity:'أنا شخص بيهتم بجسمه وصحته',timeGroup:'morning'},
   {id:'h15',name:'Make the Bed',icon:'🛏️',cat:'body',time:'',identity:'أنا شخص منضبط بيسيطر على يومه من أوله',timeGroup:'morning'},
   {id:'h16',name:'Cold Shower',icon:'🚿',cat:'body',time:'',identity:'أنا شخص بيهتم بجسمه وصحته',timeGroup:'morning'},
   {id:'h17',name:'Skincare',icon:'🧴',cat:'body',time:'',identity:'أنا شخص بيهتم بجسمه وصحته',timeGroup:'morning'},
@@ -898,6 +897,10 @@ async function loadSettings(){
     let migrated = false;
     DEFAULT_HABITS.forEach(dh=>{
       if(!existingIds.has(dh.id)){ settings.habits.push({...dh}); migrated = true; }
+    });
+    // Migration: إصلاح أيقونة عادة "Brush Teeth" لو كانت فاضية أو بالإيموجي القديم اللي مش بيظهر في بعض الأجهزة
+    settings.habits.forEach(h=>{
+      if(h.id==='h14' && h.icon!=='🦷'){ h.icon='🦷'; migrated = true; }
     });
     // Migration: امسحي عادة "فجر + قرآن" القديمة لأنها اتستبدلت بعادات "Fajr Prayer" والسور المنفصلة
     const REMOVED_HABIT_IDS = ['h2'];
@@ -942,15 +945,6 @@ async function loadSettings(){
   if(!settings.hourSlots || !settings.hourSlots.length) settings.hourSlots = ['06','09','12','15','18','21'];
   settings.commitment = Object.assign({why:'',sacrifice:'',consequence:''}, settings.commitment||{});
   (settings.habits||[]).forEach(h=>{ if(!h.timeGroup) h.timeGroup = guessTimeGroup(h); });
-  if(!settings.habits.some(h=>h.cat==='trading')){
-    settings.habits.push(
-      {id:'h_trading1',name:'مذاكرة مفهوم تداول جديد',icon:'📊',cat:'trading',time:'',identity:'أنا شخص بيبني فهمه للسوق بصبر',timeGroup:'midday'},
-      {id:'h_trading2',name:'Backtest أو مراجعة شارت',icon:'🔍',cat:'trading',time:'',identity:'أنا شخص بيتعلم من الشارتات القديمة',timeGroup:'midday'}
-    );
-  }
-  if(!settings.habits.some(h=>h.id==='h_quran')){
-    settings.habits.push({id:'h_quran', name:'قراءة القرآن', icon:'📖', cat:'mind', time:'', identity:'', timeGroup:'morning'});
-  }
   if(!settings.exercises) settings.exercises = defaultExercises();
   settings.exercises = settings.exercises.filter(ex=>ex.id!=='ex_quran');
   if(!settings.exercises.some(ex=>ex.id==='ex_water')){
@@ -1921,7 +1915,7 @@ function renderHabitGroups(rec, toggleToday, dateStr){
           <div onclick="${toggleToday?`toggleHabitToday('${h.id}')`:`toggleHabitLog('${h.id}')`}" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
             <div class="habit-check">${hDone?'✓':''}</div><div class="habit-emoji">${h.icon}</div>
             <div class="habit-info"><div class="habit-name">${escapeHtml(h.name)}${h.archived?' <span style="color:var(--dim);font-size:10px">(مؤرشفة)</span>':''}</div>
-              ${h.identity?`<div class="habit-time" style="font-style:italic;color:var(--gold-dim)">${escapeHtml(h.identity)}</div>`:h.time?`<div class="habit-time">${h.time}</div>`:''}</div>
+              ${h.time?`<div class="habit-time">${h.time}</div>`:''}</div>
           </div>
           <div class="habit-note-btn ${noteVal?'has-note':''}" title="ملاحظة" onclick="event.stopPropagation();toggleHabitNoteBox('${h.id}')">📝</div>
         </div>
@@ -2182,8 +2176,7 @@ async function renderHabits(){
       <div class="habit">
         <div class="habit-emoji">${h.icon}</div>
         <div class="habit-info"><div class="habit-name">${escapeHtml(h.name)}</div>
-          <div class="habit-time">${CAT[h.cat].icon} ${CAT[h.cat].label}${h.time?' · '+h.time:''}${h.daysOfWeek&&h.daysOfWeek.length?' · '+h.daysOfWeek.map(d=>['أحد','اتنين','تلات','أربع','خميس','جمعة','سبت'][d]).join('،'):''}</div>
-          ${h.identity?`<div class="habit-time" style="font-style:italic;color:var(--gold-dim);margin-top:2px">${escapeHtml(h.identity)}</div>`:''}</div>
+          <div class="habit-time">${CAT[h.cat].icon} ${CAT[h.cat].label}${h.time?' · '+h.time:''}${h.daysOfWeek&&h.daysOfWeek.length?' · '+h.daysOfWeek.map(d=>['أحد','اتنين','تلات','أربع','خميس','جمعة','سبت'][d]).join('،'):''}</div></div>
         <div class="habit-actions">
           <div class="icon-x" onclick="openHabitModal('${h.id}')">${svgIcon('edit')}</div>
           <div class="icon-x" onclick="archiveHabitConfirm('${h.id}')">${svgIcon('trash')}</div>
@@ -3237,24 +3230,6 @@ async function renderPlan(){
       <div class="pillar-card pt-coral"><div class="pillar-icon">💰</div><div class="pillar-name">الدخل</div>
         <div class="pillar-goal">مشروع الأكل<br>محتوى رقمي<br>دخل متنوع</div></div>
     </div>
-    <div class="sec-label">📊 منهج تعلم التداول</div>
-    <div class="card">
-      <div class="card-sub" style="margin-bottom:10px">ركن التداول هنا تعليمي بحت — مفاهيم تبنيها بصبر قبل أي تنفيذ فعلي. علّمي على أي مفهوم خلصتيه، وعدّلي أو ضيفي مفاهيمك الخاصة.</div>
-      ${settings.tradingConcepts.map(c=>`
-        <div class="habit ${c.done?'done':''}">
-          <div class="habit-check" onclick="toggleTradingConcept('${c.id}')">${c.done?'✓':''}</div>
-          <div class="habit-info" onclick="toggleTradingConcept('${c.id}')"><div class="habit-name">${escapeHtml(c.text)}</div></div>
-          <div class="habit-actions">
-            <div class="icon-x" onclick="event.stopPropagation();editTradingConceptStart('${c.id}')">${svgIcon('edit')}</div>
-            <div class="icon-x" onclick="event.stopPropagation();deleteTradingConceptConfirm('${c.id}')">${svgIcon('trash')}</div>
-          </div>
-        </div>`).join('')}
-      <div class="card-sub" style="margin:10px 0">${settings.tradingConcepts.filter(c=>c.done).length} من ${settings.tradingConcepts.length} مفهوم اتعلمتيه</div>
-      <div style="display:flex;gap:8px">
-        <input class="form-input" id="newConceptInput" type="text" placeholder="مفهوم جديد..." style="flex:1"/>
-        <button class="btn secondary" style="width:auto;padding:0 16px" onclick="addTradingConcept()">${svgIcon('plus')}</button>
-      </div>
-    </div>
 
     <div class="sec-label">المراحل</div>
     <div class="phase"><div class="phase-top"><span class="badge badge-gold">شهر 1-2</span><div class="phase-title">التأسيس — بناء النظام</div></div>
@@ -3279,19 +3254,6 @@ async function renderPlan(){
       <div><span class="bullet">◆</span> دخل من أكثر من مصدر فعلي</div>
       <div><span class="bullet">◆</span> جسم وصحة تفخري بيهم</div>
       <div><span class="bullet">◆</span> نظام يومي يشتغل لوحده</div></div></div>
-    <div class="sec-label">الجدول اليومي</div>
-    <div class="card" style="padding:0 16px">
-      <div class="schedule-item"><div class="sch-time">04:00</div><div><div class="sch-act">صحيان</div><div class="sch-note">ماي — مش موبايل</div></div></div>
-      <div class="schedule-item"><div class="sch-time">04:00-04:30</div><div><div class="sch-act">فجر + قرآن</div><div class="sch-note">15 دقيقة تركيز قبل الدنيا</div></div></div>
-      <div class="schedule-item"><div class="sch-time">04:30-05:30</div><div><div class="sch-act">💪 تمرين</div><div class="sch-note">الجسم أول — وانتي fresh</div></div></div>
-      <div class="schedule-item"><div class="sch-time">05:30-06:00</div><div><div class="sch-act">إفطار صحي</div><div class="sch-note">بروتين + كارب</div></div></div>
-      <div class="schedule-item"><div class="sch-time">06:00-06:30</div><div><div class="sch-act">🗣️ مذاكرة إنجليزي</div><div class="sch-note">منهج الأسبوع الحالي من صفحة الإنجليزي</div></div></div>
-      <div class="schedule-item"><div class="sch-time">10:00-12:00</div><div><div class="sch-act">💰 مشاريع</div><div class="sch-note">مشروع الأكل / محتوى</div></div></div>
-      <div class="schedule-item"><div class="sch-time">12:00-13:00</div><div><div class="sch-act">ظهر + قيلولة</div><div class="sch-note">20 دقيقة max</div></div></div>
-      <div class="schedule-item"><div class="sch-time">17:00-17:30</div><div><div class="sch-act">📓 مراجعة كلمات إنجليزي</div><div class="sch-note">5 كلمات جديدة + مراجعة القديم</div></div></div>
-      <div class="schedule-item"><div class="sch-time">21:30</div><div><div class="sch-act">شاشة بره</div><div class="sch-note">مش negotiable</div></div></div>
-      <div class="schedule-item"><div class="sch-time">22:00</div><div><div class="sch-act">😴 نوم</div><div class="sch-note">6 ساعات جودة</div></div></div>
-    </div>
     <div class="sec-label">القواعد العشر</div>
     <div class="rule" style="border-color:var(--gold-dim);background:var(--gold-glow)"><div class="rule-num">القاعدة 01</div>
       <div class="rule-title">الالتزام فوق الحماس</div><div class="rule-body" style="color:var(--text)">الحماس بييجي ويروح. الالتزام هو اللي بيبني. افعلي اللي المفروض حتى لو مش حاسة بيه.</div></div>
@@ -3312,14 +3274,14 @@ function renderMore(){
   return `
     <div class="more-item" onclick="openSubView('english')"><div class="more-icon">🗣️</div>
       <div class="more-txt"><div class="more-name">رحلة الإنجليزي</div><div class="more-sub">12 أسبوع لبناء ثقتك في المحادثة</div></div><div class="more-arrow">‹</div></div>
+    <div class="more-item" onclick="openSubView('sport')"><div class="more-icon">🏋️‍♀️</div>
+      <div class="more-txt"><div class="more-name">Fitness</div><div class="more-sub">تمارين يومية: سكوات، بلانك، وأكتر 🔥</div></div><div class="more-arrow">‹</div></div>
     <div class="more-item" onclick="openSubView('futureself')"><div class="more-icon">🔮</div>
       <div class="more-txt"><div class="more-name">نسختك المستقبلية</div><div class="more-sub">وصف مين هتبقي، ورسالة من نفسك بعد 5 سنين</div></div><div class="more-arrow">‹</div></div>
     <div class="more-item" onclick="openSubView('commitment')"><div class="more-icon">📜</div>
       <div class="more-txt"><div class="more-name">عقد الالتزام</div><div class="more-sub">ليه بتعملي الرحلة دي، وإيه اللي هيرجّعك لو اتعثرتي</div></div><div class="more-arrow">‹</div></div>
     <div class="more-item" onclick="openSubView('dreams')"><div class="more-icon">🌌</div>
       <div class="more-txt"><div class="more-name">لوحة الأحلام</div><div class="more-sub">كل حلم رحلة كاملة بمراحلها وتقدمها</div></div><div class="more-arrow">‹</div></div>
-    <div class="more-item" onclick="openSubView('sport')"><div class="more-icon">🏋️‍♀️</div>
-      <div class="more-txt"><div class="more-name">Fitness</div><div class="more-sub">تمارين يومية: سكوات، بلانك، وأكتر 🔥</div></div><div class="more-arrow">‹</div></div>
     <div class="more-item" onclick="openSubView('assistant')"><div class="more-icon">🧠</div>
       <div class="more-txt"><div class="more-name">المساعد الشخصي</div><div class="more-sub">تحليل يومك واقتراحات مبنية على بياناتك</div></div><div class="more-arrow">‹</div></div>
     <div class="more-item" onclick="openSubView('report')"><div class="more-icon">📄</div>
