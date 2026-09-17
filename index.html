@@ -715,13 +715,13 @@ const CAT = {
   mind:{label:'Mind',icon:'🧠',bar:'bf-ice',badge:'badge-ice'},
   body:{label:'Body',icon:'💪',bar:'bf-mint',badge:'badge-mint'},
   income:{label:'Income',icon:'💰',bar:'bf-coral',badge:'badge-coral'},
+  god:{label:'Relationship with God',icon:'🕌',bar:'bf-gold',badge:'badge-gold'},
 };
 const DW_CAT = {
   trading:{label:'Trading',icon:'📊',color:'var(--gold)'},
   study:{label:'Study',icon:'📖',color:'var(--ice)'},
-  creative:{label:'Build/Create',icon:'🏗️',color:'var(--mint)'},
-  other:{label:'Other',icon:'⚙️',color:'var(--dim)'},
 };
+const DW_CAT_FALLBACK = {label:'Custom',icon:'✏️',color:'var(--dim)'};
 function defaultDeepWorkSchedule(){
   return [
     {id:'dw1', label:'Deep Work 1', plannedStart:'06:30', plannedMin:90, defaultCat:'trading'},
@@ -743,11 +743,11 @@ function defaultExercises(){
 }
 function defaultForbidden(){
   return [
-    {id:'fb1', name:'السهر بعد نص الليل', icon:'🌙'},
-    {id:'fb2', name:'الأكل السريع/الجانك فود', icon:'🍔'},
-    {id:'fb3', name:'السوشيال ميديا من غير هدف', icon:'📱'},
-    {id:'fb4', name:'تأجيل مذاكرة الإنجليزي', icon:'📵'},
-    {id:'fb5', name:'تأجيل المهام (Procrastination)', icon:'⏳'},
+    {id:'fb1', name:'Staying up past midnight', icon:'🌙'},
+    {id:'fb2', name:'Fast food / junk food', icon:'🍔'},
+    {id:'fb3', name:'Aimless social media', icon:'📱'},
+    {id:'fb4', name:'Postponing English study', icon:'📵'},
+    {id:'fb5', name:'Procrastination', icon:'⏳'},
   ];
 }
 function defaultTradingConcepts(){
@@ -829,6 +829,7 @@ let settings = null, goals = [], fears = [], dreams = [];
 let currentTab = 'today';
 let subView = null; // null | calendar | stats | plan | settings
 let viewingDate = todayStr();
+let dwCustomChipEditing = null; // index of deep work block currently typing a custom category, or null
 let calYear, calMonth;
 let dayCache = {};
 let toastTimer = null;
@@ -877,16 +878,16 @@ const DEFAULT_HABITS = [
   {id:'h16',name:'Cold Shower',icon:'🚿',cat:'body',time:'',identity:'أنا شخص بيهتم بجسمه وصحته',timeGroup:'morning'},
   {id:'h17',name:'Skincare',icon:'🧴',cat:'body',time:'',identity:'أنا شخص بيهتم بجسمه وصحته',timeGroup:'morning'},
   {id:'h18',name:'Workout',icon:'🏋️',cat:'body',time:'',identity:'أنا شخص بيهتم بجسمه وصحته',timeGroup:'morning'},
-  {id:'h19',name:'Fajr Prayer',icon:'🕌',cat:'mind',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
-  {id:'h20',name:'Morning Azkar',icon:'📿',cat:'mind',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
-  {id:'h21',name:'Evening Azkar',icon:'📿',cat:'mind',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
-  {id:'h22',name:'Surah Yasin',icon:'📖',cat:'mind',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
-  {id:'h23',name:'Surah Al-Baqarah',icon:'📖',cat:'mind',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
-  {id:'h24',name:'Surah Al-Waqi\'ah',icon:'📖',cat:'mind',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
-  {id:'h25',name:'Surah Al-Kahf (Friday only)',icon:'📖',cat:'mind',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious',daysOfWeek:[5]},
-  {id:'h26',name:'Duha Prayer',icon:'🕌',cat:'mind',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
-  {id:'h27',name:'Tasbeeh',icon:'📿',cat:'mind',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
-  {id:'h28',name:'Shafa & Witr Prayer',icon:'🕌',cat:'mind',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
+  {id:'h19',name:'Fajr Prayer',icon:'🕌',cat:'god',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
+  {id:'h20',name:'Morning Azkar',icon:'📿',cat:'god',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
+  {id:'h21',name:'Evening Azkar',icon:'📿',cat:'god',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
+  {id:'h22',name:'Surah Yasin',icon:'📖',cat:'god',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
+  {id:'h23',name:'Surah Al-Baqarah',icon:'📖',cat:'god',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
+  {id:'h24',name:'Surah Al-Waqi\'ah',icon:'📖',cat:'god',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
+  {id:'h25',name:'Surah Al-Kahf (Friday only)',icon:'📖',cat:'god',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious',daysOfWeek:[5]},
+  {id:'h26',name:'Duha Prayer',icon:'🕌',cat:'god',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
+  {id:'h27',name:'Tasbeeh',icon:'📿',cat:'god',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
+  {id:'h28',name:'Shafa & Witr Prayer',icon:'🕌',cat:'god',time:'',identity:'أنا شخص علاقته بربنا أول أولوياته',timeGroup:'religious'},
 ];
 async function loadSettings(){
   try{
@@ -2299,7 +2300,7 @@ async function renderForbiddenSection(){
     </div>`;
   }).join('');
   return `
-    <div class="sec-label" style="margin-top:22px">🚫 الممنوعات — حاجات هنبطلها${fStats.total?` <span style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(${fStats.done}/${fStats.total})</span>`:''}
+    <div class="sec-label" style="margin-top:22px">🚫 Eliminated${fStats.total?` <span style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(${fStats.done}/${fStats.total})</span>`:''}
       <span class="link-btn" onclick="openForbiddenModal(null)">${svgIcon('plus')} إضافة</span></div>
     ${forbRows || `<div class="empty"><div class="empty-icon">🚫</div>لسه مفيش ممنوعات مضافة</div>`}
   `;
@@ -2422,12 +2423,14 @@ async function renderLog(){
   const inPlan = idx>=1 && idx<=90;
   const hoursHtml = ACTS.map(a=>{
     const v = rec.hours[a.key]||0;
+    const mins = Math.round(v*60);
     return `<div class="act-row"><div class="act-icon">${a.icon}</div><div class="act-name">${a.label}</div>
       <div class="stepper" style="margin-inline-start:auto">
-        <button onclick="stepHours('${a.key}',-0.5)">−</button>
-        <input type="number" step="0.5" min="0" max="24" value="${v}" onchange="setHours('${a.key}',this.value)"/>
-        <button onclick="stepHours('${a.key}',0.5)">+</button>
-      </div></div>`;
+        <button onclick="stepHoursMin('${a.key}',-15)">−</button>
+        <input type="number" step="1" min="0" max="1440" value="${mins}" onchange="setHoursMin('${a.key}',this.value)"/>
+        <button onclick="stepHoursMin('${a.key}',15)">+</button>
+      </div>
+      <div style="font-family:'Space Mono',monospace;font-size:13.5px;font-weight:700;color:var(--gold);min-width:52px;text-align:end;margin-inline-start:6px">${dwFormatMin(mins)}</div></div>`;
   }).join('');
   const hoursTotal = ACTS.reduce((sum,a)=>sum+(rec.hours[a.key]||0),0);
 
@@ -2482,6 +2485,20 @@ async function setHours(key, val){
   let v = parseFloat(val); if(isNaN(v)) v=0;
   rec.hours[key] = clamp(v,0,24); await saveDay(viewingDate, rec); render();
 }
+async function stepHoursMin(key, deltaMin){
+  const rec = await getDay(viewingDate);
+  const curMin = Math.round((rec.hours[key]||0)*60);
+  const newMin = clamp(curMin+deltaMin, 0, 1440);
+  rec.hours[key] = Math.round((newMin/60)*100)/100;
+  await saveDay(viewingDate, rec); render();
+}
+async function setHoursMin(key, val){
+  const rec = await getDay(viewingDate);
+  let m = parseInt(val,10); if(isNaN(m)) m=0;
+  m = clamp(m,0,1440);
+  rec.hours[key] = Math.round((m/60)*100)/100;
+  await saveDay(viewingDate, rec); render();
+}
 function shiftDate(n){ viewingDate = addDays(viewingDate, n); render(); }
 function jumpDate(v){ if(v){ viewingDate=v; render(); } }
 
@@ -2518,7 +2535,8 @@ async function renderDeepWork(){
   const last7AvgH = last7.length ? (last7.reduce((s,r)=>s+dwTotalActualMin(r),0)/last7.length/60).toFixed(1) : '0.0';
 
   const blocksHtml = (rec.deepWork.blocks||[]).map((b,i)=>{
-    const cat = DW_CAT[b.category] || DW_CAT.other;
+    const isCustomCat = !DW_CAT[b.category];
+    const cat = DW_CAT[b.category] || Object.assign({}, DW_CAT_FALLBACK, {label: (b.category && b.category.trim()) ? b.category : DW_CAT_FALLBACK.label});
     const pct = b.plannedMin>0 ? clamp(Math.round((b.actualMin/b.plannedMin)*100),0,150) : 0;
     return `<div class="card" style="margin-bottom:10px;${b.completed?'border-color:'+cat.color:''}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -2531,24 +2549,28 @@ async function renderDeepWork(){
         </div>
         <div class="chip ${b.completed?'sel':''}" style="cursor:pointer" onclick="toggleDeepWorkDone(${i})">${b.completed?'✓ Done':'Not yet'}</div>
       </div>
-      <div class="chip-row" style="margin-bottom:8px">
+        <div class="chip-row" style="margin-bottom:8px">
         ${Object.entries(DW_CAT).map(([k,c])=>`<div class="chip ${b.category===k?'sel':''}" onclick="setDeepWorkCat(${i},'${k}')">${c.icon} ${c.label}</div>`).join('')}
+        ${dwCustomChipEditing===i
+          ? `<input class="form-input" type="text" autofocus style="width:120px;padding:4px 8px;font-size:12px" placeholder="اسم الفئة..." value="${isCustomCat?escapeHtml(b.category||''):''}" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmDeepWorkCustomCat(${i},this.value);}" onblur="confirmDeepWorkCustomCat(${i},this.value)"/>`
+          : `<div class="chip ${isCustomCat?'sel':''}" onclick="startDeepWorkCustomCat(${i})">✏️ ${isCustomCat?escapeHtml(b.category):'Custom'}</div>`}
       </div>
       <div style="margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
           <div style="font-size:11px;color:var(--dim)">Actual time worked</div>
           <div style="display:flex;align-items:center;gap:6px">
-            ${b.actualMin>=150?'<span style="font-size:13px">💡</span>':''}
-            <div id="dwVal${i}" style="font-family:'Space Mono',monospace;font-size:13.5px;font-weight:700;color:${b.actualMin>=150?'var(--gold)':cat.color}">${dwFormatMin(Math.max(b.actualMin,15))}</div>
-            ${b.actualMin>=150?`<button type="button" class="btn secondary" style="padding:2px 8px;font-size:11px;width:auto" onclick="stepDeepWorkMin(${i},15)">+15m</button>`:''}
+            ${b.actualMin>=b.plannedMin?'<span style="font-size:13px">💡</span>':''}
+            <div id="dwVal${i}" style="font-family:'Space Mono',monospace;font-size:13.5px;font-weight:700;color:${b.actualMin>=b.plannedMin?'var(--gold)':cat.color}">${dwFormatMin(Math.max(b.actualMin,15))}</div>
+            ${b.actualMin>=b.plannedMin?`<button type="button" class="btn secondary" style="padding:2px 8px;font-size:11px;width:auto" onclick="stepDeepWorkMin(${i},15)">+15m</button>`:''}
           </div>
         </div>
-        <input type="range" class="dw-slider ${b.actualMin>=150?'dw-slider-maxed':''}" min="15" max="150" step="15" value="${clamp(b.actualMin,15,150)}"
-          style="accent-color:${b.actualMin>=150?'var(--gold)':cat.color}" oninput="document.getElementById('dwVal${i}').textContent=dwFormatMin(this.value)" onchange="setDeepWorkMin(${i},this.value)"/>
+        ${(()=>{ const dwMax = Math.max(b.plannedMin||90, 15); const dwStep = dwMax<=60?5:15;
+        return `<input type="range" class="dw-slider ${b.actualMin>=dwMax?'dw-slider-maxed':''}" min="0" max="${dwMax}" step="${dwStep}" value="${clamp(b.actualMin,0,dwMax)}"
+          style="accent-color:${b.actualMin>=dwMax?'var(--gold)':cat.color}" oninput="document.getElementById('dwVal${i}').textContent=dwFormatMin(this.value)" onchange="setDeepWorkMin(${i},this.value)"/>
         <div class="dw-slider-ticks">
-          <span>15m</span><span>30m</span><span>45m</span><span>1h</span><span>1h15</span><span>1h30</span><span>1h45</span><span>2h</span><span>2h15</span><span>2h30+</span>
-        </div>
-        ${b.actualMin>=150?`<div style="font-size:10.5px;color:var(--gold-dim);margin-top:5px">تمام يا بطلة، حققتِ المستهدف وكمان زودتِ 💪 استمري على الزرار +15m لو عايزة تسجلي أكتر</div>`:''}
+          <span>0</span><span>${dwFormatMin(Math.round(dwMax*0.25))}</span><span>${dwFormatMin(Math.round(dwMax*0.5))}</span><span>${dwFormatMin(Math.round(dwMax*0.75))}</span><span>${dwFormatMin(dwMax)}</span>
+        </div>`; })()}
+        ${b.actualMin>=b.plannedMin?`<div style="font-size:10.5px;color:var(--gold-dim);margin-top:5px">تمام يا بطلة، حققتِ المستهدف وكمان زودتِ 💪 استمري على الزرار +15m لو عايزة تسجلي أكتر</div>`:''}
       </div>
       <div style="margin-bottom:8px">
         <div style="font-size:11px;color:var(--dim);margin-bottom:4px">Focus quality</div>
@@ -2619,6 +2641,18 @@ async function toggleDeepWorkDone(i){
 async function setDeepWorkCat(i, cat){
   const t = todayStr(); const rec = await getDay(t);
   rec.deepWork.blocks[i].category = cat;
+  await saveDay(t, rec); render();
+}
+function startDeepWorkCustomCat(i){
+  dwCustomChipEditing = i;
+  render();
+}
+async function confirmDeepWorkCustomCat(i, val){
+  dwCustomChipEditing = null;
+  const name = (val||'').trim();
+  if(!name){ render(); return; }
+  const t = todayStr(); const rec = await getDay(t);
+  rec.deepWork.blocks[i].category = name;
   await saveDay(t, rec); render();
 }
 function dwFormatMin(m){
@@ -4631,7 +4665,37 @@ function celebrate(){
   playChime();
   showToast(`🎆 تم استقبال إشارة كاملة يا ${settings.userName} — يوم مثالي في المهمة!`);
 }
+
+/* ===================== BUNDLED BACKUP (يُستخدم فقط لو لسه مفيش بيانات محفوظة) ===================== */
+const BUNDLED_BACKUP = {"version": 1, "exportedAt": "2026-09-17T11:17:08.572Z", "settings": {"theme": "dark", "startDate": "2026-09-17", "userName": "ياسمين", "journeyStarted": true, "habits": [{"id": "h1", "name": "Waking up at 4", "icon": "⏰", "cat": "body", "time": "04:00", "identity": "أنا شخص منضبط بيسيطر على يومه من أوله", "timeGroup": "morning", "unlockWeek": 1}, {"id": "h4", "name": "healthy breakfast", "icon": "🥗", "cat": "body", "time": "05:30", "identity": "أنا شخص بيغذي جسمه بوعي", "timeGroup": "morning", "unlockWeek": 1}, {"id": "h5", "name": "Learn English 90m", "icon": "📚", "cat": "english", "time": "09:30", "identity": "أنا شخص بيتعلم كل يوم", "timeGroup": "morning", "unlockWeek": 1}, {"id": "h6", "name": "5 كلمات جديدة + مراجعة", "icon": "📓", "cat": "english", "time": "17:00", "identity": "أنا شخص بيوسّع لغته يوم ورا يوم", "timeGroup": "evening"}, {"id": "h7", "name": "محاولة محادثة/تسجيل صوتي بالإنجليزي", "icon": "🎙️", "cat": "english", "time": "", "identity": "أنا شخص بيتكلم إنجليزي بثقة", "timeGroup": "midday"}, {"id": "h9", "name": "شاشة بره 9:00م", "icon": "📵", "cat": "mind", "time": "21:00", "identity": "أنا شخص عقله صافي وحاضر", "timeGroup": "evening", "unlockWeek": 1}, {"id": "h10", "name": "Sleep early", "icon": "😴", "cat": "body", "time": "22:00", "identity": "أنا شخص بيحترم راحة جسمه", "timeGroup": "evening", "unlockWeek": 1}, {"id": "h11", "name": "مذاكرة مفهوم تداول جديد", "icon": "📊", "cat": "trading", "time": "", "identity": "أنا شخص بيبني فهمه للسوق بصبر", "timeGroup": "midday"}, {"id": "h12", "name": "Backtest أو مراجعة شارت", "icon": "🔍", "cat": "trading", "time": "", "identity": "أنا شخص بيتعلم من الشارتات القديمة", "timeGroup": "midday"}, {"id": "h13", "name": "Glass of Water", "icon": "💧", "cat": "body", "time": "", "identity": "أنا شخص بيهتم بجسمه وصحته", "timeGroup": "morning"}, {"id": "h14", "name": "Brush Teeth", "icon": "🦷", "cat": "body", "time": "", "identity": "أنا شخص بيهتم بجسمه وصحته", "timeGroup": "morning"}, {"id": "h15", "name": "Make the Bed", "icon": "🛏️", "cat": "body", "time": "", "identity": "أنا شخص منضبط بيسيطر على يومه من أوله", "timeGroup": "morning"}, {"id": "h16", "name": "Cold Shower", "icon": "🚿", "cat": "body", "time": "", "identity": "أنا شخص بيهتم بجسمه وصحته", "timeGroup": "morning"}, {"id": "h17", "name": "Skincare", "icon": "🧴", "cat": "body", "time": "", "identity": "أنا شخص بيهتم بجسمه وصحته", "timeGroup": "morning"}, {"id": "h18", "name": "Workout", "icon": "🏋️", "cat": "body", "time": "", "identity": "أنا شخص بيهتم بجسمه وصحته", "timeGroup": "morning"}, {"id": "h19", "name": "Fajr Prayer", "icon": "🕌", "cat": "god", "time": "", "identity": "أنا شخص علاقته بربنا أول أولوياته", "timeGroup": "religious"}, {"id": "h20", "name": "Morning Azkar", "icon": "📿", "cat": "god", "time": "", "identity": "أنا شخص علاقته بربنا أول أولوياته", "timeGroup": "religious"}, {"id": "h21", "name": "Evening Azkar", "icon": "📿", "cat": "god", "time": "", "identity": "أنا شخص علاقته بربنا أول أولوياته", "timeGroup": "religious"}, {"id": "h22", "name": "Surah Yasin", "icon": "📖", "cat": "god", "time": "", "identity": "أنا شخص علاقته بربنا أول أولوياته", "timeGroup": "religious"}, {"id": "h23", "name": "Surah Al-Baqarah", "icon": "📖", "cat": "god", "time": "", "identity": "أنا شخص علاقته بربنا أول أولوياته", "timeGroup": "religious"}, {"id": "h24", "name": "Surah Al-Waqi'ah", "icon": "📖", "cat": "god", "time": "", "identity": "أنا شخص علاقته بربنا أول أولوياته", "timeGroup": "religious"}, {"id": "h25", "name": "Surah Al-Kahf (Friday only)", "icon": "📖", "cat": "god", "time": "", "identity": "أنا شخص علاقته بربنا أول أولوياته", "timeGroup": "religious", "daysOfWeek": [5]}, {"id": "h26", "name": "Duha Prayer", "icon": "🕌", "cat": "god", "time": "", "identity": "أنا شخص علاقته بربنا أول أولوياته", "timeGroup": "religious"}, {"id": "h27", "name": "Tasbeeh", "icon": "📿", "cat": "god", "time": "", "identity": "أنا شخص علاقته بربنا أول أولوياته", "timeGroup": "religious"}, {"id": "h28", "name": "Shafa & Witr Prayer", "icon": "🕌", "cat": "god", "time": "", "identity": "أنا شخص علاقته بربنا أول أولوياته", "timeGroup": "religious"}, {"id": "h1789616379943", "name": "Night prayer", "icon": "🕌", "cat": "god", "time": "4", "identity": "ركعتين قيام الليل بالدنيا وما فيها", "timeGroup": "religious", "unlockWeek": 1}, {"id": "h1789616472266", "name": "ورد الدعاء", "icon": "📖", "cat": "god", "time": "", "identity": "", "timeGroup": "religious", "unlockWeek": 1}, {"id": "h1789641847268", "name": "Surah Al-Fath", "icon": "📖", "cat": "god", "time": "", "identity": "", "timeGroup": "religious", "unlockWeek": 1}, {"id": "h1789642222730", "name": "Surah Al-Ikhlas 10 times", "icon": "❤️", "cat": "god", "time": "", "identity": "من قرأ سورة الإخلاص عشر مرات، بنى الله له قصراً في الجنة والله اعلم", "timeGroup": "religious", "unlockWeek": 1}], "reminders": {"enabled": false, "time": "20:00"}, "hourSlots": ["06", "09", "12", "15", "18", "21"], "futureMe": {"identity": "أنا النسخة التي اختارت الانضباط بدل الأعذار.", "speech": "أتكلم بهدوء واحترام وثقة. كلماتي واضحة، صادقة، وإيجابية، ولا أتكلم إلا بما ينفع.", "thinking": "أفكر بعقلانية وحكمة، ولا أسمح للمشاعر اللحظية أن تقود قراراتي. أركز على الحلول، وأتعلم من أخطائي بدل أن أستسلم لها.", "relationships": "أعامل الجميع بلطف واحترام، وأحافظ على حدودي. أختار العلاقات التي تدعمني، وأبتعد عن كل ما يستنزف طاقتي.", "health": "صحتي قوية، ونومي منتظم، وأهتم بجسدي وطعامي وحركتي، لأن صحتي أساس نجاحي.", "body": "جسمي صحي، واتمتع بليونه و رشيق، وقوة. أشعر بالراحة والثقة فيه لأنني أعتني به باستمرار .", "faith": "علاقتي بالله هي مصدر قوتي وطمأنينتي. أحافظ على صلاتي، وأذكر الله كثيرًا، وأسعى لرضاه في كل خطوة.", "income": "دخلي في نمو مستمر، وأحقق أرباحًا بذكاء وانضباط. أدير أموالي بحكمة، وأبني استقرارًا ماليًا حقيقيًا.", "home": "منزلي هادئ، نظيف، ومنظم، ويمنحني الراحة والتركيز والطاقة الإيجابية.", "dailyLife": "أبدأ يومي مبكرًا، ألتزم بعاداتي، أتعلم، أعمل بتركيز، أمارس الرياضة، وأخصص وقتًا للراحة والعبادة والعائلة.", "values": "الإيمان، الانضباط، الصدق، الأمانة، الاحترام، التعلم المستمر، المسؤولية، والالتزام.", "personality": "شخصيتي قوية ومتزنة، هادئة تحت الضغط، مرنة أمام التحديات، ولا أستسلم بسهولة. أؤمن أن النجاح يبنى بالالتزام اليومي، وليس بالحماس المؤقت."}, "letterFromFuture": "إلى نسختي القديمة ياسمين...\n\nأنا أنتِ بعد خمس سنوات.\nأكتب لكِ وأنا أعيش الحياة التي كنتِ تدعين الله بها يومًا وكنتي ديمآ بتحلمي بيها وبتتمنيها. نعم، وصلنا، لكن ليس لأن الطريق كان سهلًا، بل لأنكِ لم تستسلمي في الأيام التي لم يكن فيها أحد يراكِ.\nأريدكِ أن تعرفي أن كل مرة قاومتِ فيها التسويف والتشتت، وكل مرة أغلقتِ الهاتف وفتحتِ كتابًا أو التزمتِ بعادتك التي رسمتيها في 90يوم، كانت تبني حياتي الحالية. لم تكن خطوات صغيرة كما كنتِ تظنين، بل كانت أساس كل شيء.\nستمر عليكِ أيام تشكين فيها بنفسك، وستظنين أن التغيير بطيء، لكن لا تصدقي هذا الشعور. الاستمرار أهم من الكمال، والنجاح ليس قرارًا كبيرًا، بل مجموعة قرارات صغيرة كررتها كل يوم وتعبت فيها لحد ماأستمريت عليها.\nلا تخافي من الفشل، فهو لم يكن يومًا ما أوقفنا، بل الاستسلام فقط. وكل مرة نهضتِ فيها بعد التعثر، أصبحتِ أقوى مما كنتِ تتخيلين.\nاليوم أنا أعيش بسلام في بيت احلامك ياياسمين المستقل، علاقتي بالله أعمق، وعقلي أكثر هدوءًا، وجسدي أكثر صحة، وعملي يحقق ثماره، لأنكِ اخترتِ الانضباط عندما كان أسهل شيء هو التأجيل.\nأشكركِ لأنكِ لم تتخلّي عني. كل ما أعيشه الآن هو نتيجة شجاعتكِ من يوم مسار ال90.\nوعندما تشعرين بالتعب، تذكري هذه الجملة دائمًا:\n\"لا تتخلي عن الحياة التي تستحقينها من أجل راحة مؤقتة.\"\n\nمن نسختكِ التي كانت حلمًا، وأصبحت واقعًا.\n", "legacyText": "أريد أن يُكتب أنني لم أكن الأكثر موهبة، لكنني كنت الأكثر التزامًا. أنني بدأت من الصفر، وحاربت التشتت والتسويف حتى صنعت حياة كنت أحلم بها. أنني حافظت على علاقتي بالله، وبنيت نجاحي بصدق وانضباط، وأثبتُّ أن التغيير الحقيقي يبدأ بقرار صغير يتكرر كل يوم.\nأريد أن يُكتب أنني تركت أثرًا طيبًا في كل من عرفني، وأن وجودي كان مصدر خير وإلهام، وأنني عشت حياةً تليق بالقيم التي آمنت بها، ولم أتخلَّ عن أحلامي مهما طال الطريق.\n", "commitment": {"why": "أقوم بهذه الرحلة لأنني أريد أن أبني نسخة أفضل من نفسي أكثر وعيًا وانضباطًا، وأستعيد السيطرة على عقلي وعاداتي بدل أن يقودني التشتت والتسويف. هدفي أن ألتزم بما يقرّبني من أهدافي، وأثبت لنفسي أنني أستطيع الوفاء بوعودي لنفسي قبل أي شيء، لأعيش حياة تتوافق مع قيمي وطموحاتي.", "sacrifice": "مستعدة أضحّي بالراحة المؤقتة، والتشتت، والتسويف، والعادات التي تسرق وقتي وتركيزي. ومستعدة أتحمل صعوبة الالتزام اليومي، وأؤجل المتعة اللحظية مقابل تحقيق أهدافي على المدى الطويل، لأنني مؤمنة أن النسخة التي أطمح إليها تستحق هذا الثمن.", "consequence": "تذكري لماذا بدأتِ ياياسمين استمري لا تستسلمي."}, "deepWorkSchedule": [{"id": "dw1", "label": "Deep Work 1", "plannedStart": "06:30", "plannedMin": 90, "defaultCat": "study"}, {"id": "dw2", "label": "Deep Work 2", "plannedStart": "08:20", "plannedMin": 100, "defaultCat": "study"}, {"id": "dw3", "label": "Deep Work 3", "plannedStart": "13:00", "plannedMin": 120, "defaultCat": "creative"}], "exercises": [{"id": "ex_water", "name": "شرب مياه", "icon": "💧", "type": "water", "target": 3000, "unit": "مل"}, {"id": "ex1", "name": "سكوات (Squats)", "icon": "🦵", "type": "reps", "target": 20, "unit": "عدة"}, {"id": "ex2", "name": "بلانك (Plank)", "icon": "🧘‍♀️", "type": "time", "target": 45, "unit": "ثانية"}, {"id": "ex3", "name": "ضغط (Push-ups)", "icon": "💪", "type": "reps", "target": 10, "unit": "عدة"}, {"id": "ex4", "name": "برجس (Burpees)", "icon": "🔥", "type": "reps", "target": 10, "unit": "عدة"}, {"id": "ex5", "name": "لانجز (Lunges)", "icon": "🦿", "type": "reps", "target": 16, "unit": "عدة"}, {"id": "ex6", "name": "كرانش (Crunches)", "icon": "🌀", "type": "reps", "target": 20, "unit": "عدة"}, {"id": "ex7", "name": "مشي/جري خفيف", "icon": "🏃‍♀️", "type": "time", "target": 15, "unit": "دقيقة"}], "forbidden": [{"id": "fb1", "name": "السهر بعد نص الليل", "icon": "🌙"}, {"id": "fb2", "name": "الأكل السريع/الجانك فود", "icon": "🍔"}, {"id": "fb3", "name": "السوشيال ميديا من غير هدف", "icon": "📱"}, {"id": "fb4", "name": "تأجيل مذاكرة الإنجليزي", "icon": "📵"}, {"id": "fb5", "name": "تأجيل المهام (Procrastination)", "icon": "⏳"}], "tradingConcepts": [{"id": "tc1", "text": "هيكل السوق (Market Structure) — Higher High/Low", "done": false}, {"id": "tc2", "text": "مناطق السيولة (Liquidity)", "done": false}, {"id": "tc3", "text": "Order Blocks", "done": false}, {"id": "tc4", "text": "Fair Value Gaps (FVG)", "done": false}, {"id": "tc5", "text": "مناطق العرض والطلب (Supply & Demand)", "done": false}, {"id": "tc6", "text": "إدارة المخاطرة — مخاطرة 1-2% بس لكل صفقة", "done": false}, {"id": "tc7", "text": "Backtesting — مراجعة شارتات قديمة", "done": false}, {"id": "tc8", "text": "Trading Journal — تسجيل كل قرار وسببه", "done": false}, {"id": "tc9", "text": "الانضباط النفسي — التحكم في مشاعر الخسارة", "done": false}, {"id": "tc10", "text": "تحليل متعدد الفريمات (Multi-timeframe)", "done": false}, {"id": "tc11", "text": "أوقات الجلسات (London/NY Sessions)", "done": false}, {"id": "tc12", "text": "نسبة Risk:Reward قبل الدخول", "done": false}], "journeyLockedAt": "2026-09-17T03:37:27.715Z"}, "goals": [], "fears": [{"id": "f1784361728095", "fear": "أخاف أن أعود للتشتت والتسويف وأتخلى عن أحلامي.", "step": "سألتزم بعاداتي يومًا بيوم، وأبدأ كل صباح بدون هاتف، حتى لو كان تقدمي بسيطًا.", "done": false}, {"id": "f1784361753776", "fear": "أخاف ألا أنجح في التداول", "step": "سألتزم بخطة تداولي وأراجعها يوميًا دون قرارات عشوائية.", "done": false}], "dreams": [], "days": {"day:2026-09-17": {"habits": {"h19": true, "h20": true, "h22": true, "h1789616379943": true, "h1789616472266": true, "h1": true, "h13": true, "h14": true, "h15": true, "h18": true, "h24": true, "h1789641847268": true, "h4": true, "h26": true, "h27": true, "h1789642222730": true, "h7": true, "h5": true}, "habitNotes": {"h18": "عشان اول يوم عملت تمرين في البيت 15mفقط", "h27": "سبحت بعد الفجر 100 لا اله الا الله وحدة لا شريك له له الملك وله الحمد وهو على كل شئ قدير \nوقبل الفجر 50 الصلاه الابراهيميه", "h14": "عملت اسناني بغسول اصبح فقط"}, "hours": {"english": 1.5, "study": 0, "sport": 0, "reading": 0, "sleep": 6, "quran": 0}, "note": "", "mood": 3, "energy": 3, "sleepQuality": 2, "focus": 3, "productivity": null, "challengeText": "", "wins": ["", "", ""], "gratitude": ["", "", ""], "improveTomorrow": "", "hourly": {}, "sport": {}, "forbidden": {}, "morningRitual": {"intention": "هصلح من نفسي", "priority": "ابداء انجليزي"}, "recommitment": null, "englishWords": 0, "deepWork": {"blocks": [{"id": "dw1", "label": "Deep Work 1", "category": "study", "plannedStart": "06:30", "plannedMin": 90, "actualMin": 75, "focusQuality": 4, "completed": false, "note": "اول يوم ولا للاستسلام ونعم للاستمراريه وكنت متحمسه ولسه متحمسه خصوصا ان  ChatGBT ساعدني كتير وحبيت التجربة"}, {"id": "dw2", "label": "Deep Work 2", "category": "study", "plannedStart": "08:20", "plannedMin": 100, "actualMin": 15, "focusQuality": null, "completed": false, "note": ""}, {"id": "dw3", "label": "Deep Work 3", "category": "creative", "plannedStart": "13:00", "plannedMin": 120, "actualMin": 0, "focusQuality": null, "completed": false, "note": ""}]}, "date": "2026-09-17"}}, "images": {}};
+async function restoreFromBundledBackupIfEmpty(){
+  try{
+    const existing = await storage.get('settings');
+    if(existing && existing.value) return; // فيه بيانات محفوظة بالفعل، متلمسهاش
+  }catch(e){
+    // مفيش بيانات محفوظة أصلاً -> نكمل الاستعادة
+  }
+  try{
+    const b = BUNDLED_BACKUP;
+    if(b.settings) await storage.set('settings', JSON.stringify(b.settings));
+    if(b.goals) await storage.set('goals', JSON.stringify(b.goals));
+    if(b.fears) await storage.set('fears', JSON.stringify(b.fears));
+    if(b.dreams) await storage.set('dreams', JSON.stringify(b.dreams));
+    if(b.days){
+      for(const k in b.days){
+        try{ await storage.set(k, JSON.stringify(b.days[k])); }catch(e){}
+      }
+    }
+    if(b.images){
+      for(const k in b.images){
+        try{ await storage.set(k, b.images[k]); }catch(e){}
+      }
+    }
+  }catch(e){ /* فشل الاستعادة، التطبيق هيبدأ ببيانات فاضية عادي */ }
+}
+
 (async function init(){
+  await restoreFromBundledBackupIfEmpty();
   await loadSettings();
   await loadGoals();
   await loadFears();
